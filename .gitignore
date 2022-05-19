@@ -8,6 +8,7 @@ __pycache__
 *.cpp
 *.pyc
 *.egg-info
+*.csv
 
 .tox/
 
