@@ -12,7 +12,6 @@ environment:
       secure: mjwuqrrrl71BQoPg5t++MKlVApmBBDAr7GmQtI5YawjhdpCJtMi+Tof4P1ENDCLp
 
   matrix:
-    - CONDA: 27
     - CONDA: 35
     - CONDA: 36
     - CONDA: 37
@@ -31,7 +30,6 @@ install:
   - ECHO "Filesystem root:"
   - ps: "ls \"C:/\""
   - SET "CONDAPATH=conda%CONDA%"
-  - if %CONDA%==27 (SET "CONDAPATH=conda")
   - if %PLATFORM%==x64 (SET "CONDAPATH=%CONDAPATH%-x64")
 
   - CALL "C:\\Mini%CONDAPATH%\\Scripts\\conda.exe" info --envs
@@ -96,6 +94,7 @@ test_script:
   - ECHO "Starting the tests"
   - "python -c \"import nose; nose.main()\" --nocapture pystan.tests.test_basic \
      pystan.tests.test_basic_array pystan.tests.test_basic_matrix \
+     pystan.tests.test_cvodes \
      pystan.tests.test_basic_pars pystan.tests.test_ess \
      pystan.tests.test_extract pystan.tests.test_fixed_param \
      pystan.tests.test_linear_regression pystan.tests.test_misc \
