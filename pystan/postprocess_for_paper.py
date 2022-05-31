@@ -1,4 +1,5 @@
 import copy
+import time
 import pystan
 import numpy as np
 import scipy as sp
@@ -62,7 +63,7 @@ def quadratic_control_variates(constrained_samples, unconstrained_samples, grad_
     return quad_cv_samples
 
 
-def run_postprocess(fit, cv_mode='linear', permuted=False, output_squared_samples=False):
+def run_postprocess(fit, cv_mode='linear', permuted=False):
     num_chains = fit.sim['chains']
     num_save = fit.sim['n_save']
     num_warmups = fit.sim['warmup2']
@@ -105,32 +106,38 @@ def run_postprocess(fit, cv_mode='linear', permuted=False, output_squared_sample
     unconstrained_mcmc_samples = np.array(unconstrained_mcmc_samples)
     constrained_mcmc_samples = np.array(constrained_mcmc_samples)
 
+    # constrained parameter indices
+    constrained_dim = []
+    param_dims = unconstrained_mcmc_samples.shape[1]
+    for d in range(param_dims):
+        check = unconstrained_mcmc_samples[:, d] != constrained_mcmc_samples[:, d]
+        if np.any(check):
+            constrained_dim.append(d)
+    constrained_dim = np.array(constrained_dim)
+
     # Calculate gradients of the log-probability
+    grad_start_time = time.time()
     grad_log_prob_vals = []
     for i in range(num_samples_total):
         grad_log_prob_vals.append(fit.grad_log_prob(unconstrained_mcmc_samples[i], adjust_transform=True))
     grad_log_prob_vals = np.array(grad_log_prob_vals)
+    grad_runtime = time.time() - grad_start_time
 
+    cv_start_time = time.time()
     if cv_mode == 'linear':
         # Run control variates
         cv_samples = linear_control_variates(constrained_mcmc_samples, grad_log_prob_vals)
+        cv_runtime = time.time() - cv_start_time
         # print('Gradient time: {:.05f} --- Linear control variate time: {:.05f}.'.format(grad_runtime, cv_runtime))
     elif cv_mode == 'quadratic':
         cv_samples = quadratic_control_variates(constrained_mcmc_samples, unconstrained_mcmc_samples, grad_log_prob_vals)
+        cv_runtime = time.time() - cv_start_time
         # print('Gradient time: {:.05f} --- Quadratic control variate time: {:.05f}.'.format(grad_runtime, cv_runtime))
     else:
         print('The mode of control variates must be linear or quadratic.')
         return None
-
-    if output_squared_samples == True:
-        # the squared samples are used for calculating the standard deviation of the problem.
-        if cv_mode == 'linear':
-            cv_samples_suqared = linear_control_variates(constrained_mcmc_samples**2, grad_log_prob_vals)
-        elif cv_mode == 'quadratic':
-            cv_samples_suqared = quadratic_control_variates(constrained_mcmc_samples**2, unconstrained_mcmc_samples, grad_log_prob_vals)
-        return cv_samples, cv_samples_suqared
-    else:
-            return cv_samples
+    
+    return cv_samples, (grad_runtime, cv_runtime), constrained_dim
     
 
 """

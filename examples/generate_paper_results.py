@@ -3,7 +3,7 @@ import time
 import pystan
 import numpy as np
 import rpy2.robjects as robjects
-import pystan.postprocess as pp
+import pystan.postprocess_for_paper as pp
 import pandas as pd
 import pickle
 from os import path
@@ -15,14 +15,22 @@ if __name__ == '__main__':
         file_dirs = fid.readlines()
     
     model_names = []
+    constrained_param_count = []
     rmse_mcmc_all = []
     rmse_lcv_all = []
     rmse_qcv_all = []
+
     vars_mcmc_all = []
     vars_lcv_all = []
     vars_qcv_all = []
+
+    vars_mcmc_cons_all = []
+    vars_lcv_cons_all = []
+    vars_qcv_cons_all = []
+
     build_time_all = []
     sample_time_all = []
+
     lcv_grad_time_all = []
     lcv_cv_time_all = []
     qcv_grad_time_all = []
@@ -57,11 +65,11 @@ if __name__ == '__main__':
             data = None
         ## - - - - - - - - - - - - - - - - - - - - - - - -
         
-        # run stan
+        # run stanlinear_cv_samples
         build_start_time = time.time()
         sm = pystan.StanModel(file=model_file)
         build_time = time.time() - build_start_time
-        parameter_names = getParameterNames(sm)
+        parameter_only_names = getParameterNames(sm)
 
         if data is not None:
             data = verifyDataType(sm, data) # make sure the types of input data align with .stan file. 
@@ -87,6 +95,9 @@ if __name__ == '__main__':
         vars_mcmc_mc = []
         vars_lcv_mc = []
         vars_qcv_mc = []
+        vars_mcmc_cons_mc = []
+        vars_lcv_cons_mc = []
+        vars_qcv_cons_mc = []
         sample_time_mc = []
         lcv_grad_time_mc = []
         lcv_cv_time_mc = []
@@ -105,17 +116,12 @@ if __name__ == '__main__':
             qcv_grad_times = []
             qcv_cv_times = []
             # calculate the average runtime, as it is too fast.
-            for i in range(1):
-                linear_cv_samples, linear_cv_runtime = pp.run_postprocess(fit, cv_mode='linear', output_squared_samples=False, output_runtime=True)
-                quadratic_cv_samples, quadratic_cv_runtime = pp.run_postprocess(fit, cv_mode='quadratic', output_squared_samples=False, output_runtime=True)
-                lcv_grad_times.append(linear_cv_runtime[0])
-                lcv_cv_times.append(linear_cv_runtime[1])
-                qcv_grad_times.append(quadratic_cv_runtime[0])
-                qcv_cv_times.append(quadratic_cv_runtime[1])
-            lcv_grad_time_mean = np.mean(lcv_grad_times)
-            lcv_cv_time_mean = np.mean(lcv_cv_times)
-            qcv_grad_time_mean = np.mean(qcv_grad_times)
-            qcv_cv_time_mean = np.mean(qcv_cv_times)
+            linear_cv_samples, linear_cv_runtime, lcv_constrained_dim = pp.run_postprocess(fit, cv_mode='linear')
+            quadratic_cv_samples, quadratic_cv_runtime, qcv_constrained_dim = pp.run_postprocess(fit, cv_mode='quadratic')
+            lcv_grad_time_mean = linear_cv_runtime[0]
+            lcv_cv_time_mean = linear_cv_runtime[1]
+            qcv_grad_time_mean = quadratic_cv_runtime[0]
+            qcv_cv_time_mean = quadratic_cv_runtime[1]
 
             # (Approximated) truth
             # fit_truth = sm.sampling(data=data, chains=1, iter=200000, warmup=100000, verbose=False)
@@ -151,19 +157,30 @@ if __name__ == '__main__':
             parameter_vars_vector = np.array(parameter_vars_vector)
             rmse_mcmc = np.sqrt(np.mean((parameter_means_vector-parameter_means_vector_truth)**2))
             vars_mcmc = np.mean(parameter_vars_vector)
-            # print('MCMC RMSE: {:.05f}.'.format(rmse_mcmc))
+            if len(lcv_constrained_dim) == 0:
+                vars_cons_mcmc = -1.0
+            else:
+                vars_cons_mcmc = np.mean(parameter_vars_vector[lcv_constrained_dim])
 
-                    # Linear CV correctness
+            # Linear CV correctness
             lcv_means = np.nanmean(linear_cv_samples, axis=0)
             rmse_lcv = np.sqrt(np.nanmean((lcv_means-parameter_means_vector_truth)**2))
-            # print('Linear CV RMSE: {:.05f}.'.format(rmse_lcv))
-            vars_lcv = np.mean(np.nanvar(linear_cv_samples, axis=0))
+            vars_tmp = np.nanvar(linear_cv_samples, axis=0)
+            vars_lcv = np.mean(vars_tmp)
+            if len(lcv_constrained_dim) == 0:
+                vars_cons_lcv = -1.0
+            else:
+                vars_cons_lcv = np.mean(vars_tmp[lcv_constrained_dim])
 
             # Quad CV correctness
             qcv_means = np.nanmean(quadratic_cv_samples, axis=0)
             rmse_qcv = np.sqrt(np.nanmean((qcv_means-parameter_means_vector_truth)**2))
-            # print('Quadratic CV RMSE: {:.05f}.'.format(rmse_qcv))
-            vars_qcv = np.mean(np.nanvar(quadratic_cv_samples, axis=0))
+            vars_tmp = np.nanvar(quadratic_cv_samples, axis=0)
+            vars_qcv = np.mean(vars_tmp)
+            if len(lcv_constrained_dim) == 0:
+                vars_cons_qcv = -1.0
+            else:
+                vars_cons_qcv = np.mean(vars_tmp[lcv_constrained_dim])
 
             sample_time_mc.append(sample_time)
             lcv_grad_time_mc.append(lcv_grad_time_mean)
@@ -178,7 +195,13 @@ if __name__ == '__main__':
             vars_mcmc_mc.append(vars_mcmc)
             vars_lcv_mc.append(vars_lcv)
             vars_qcv_mc.append(vars_qcv)
+            vars_mcmc_cons_mc.append(vars_cons_mcmc)
+            vars_lcv_cons_mc.append(vars_cons_lcv)
+            vars_qcv_cons_mc.append(vars_cons_qcv)
 
+            break
+
+        constrained_param_count.append(len(lcv_constrained_dim))
         build_time_all.append(build_time)
         sample_time_all.append(np.mean(sample_time_mc))
         lcv_grad_time_all.append(np.mean(lcv_grad_time_mc))
@@ -194,12 +217,18 @@ if __name__ == '__main__':
         vars_lcv_all.append(np.mean(vars_lcv_mc))
         vars_qcv_all.append(np.mean(vars_qcv_mc))
 
-        paper_summary = {'model_name':model_names,
+        vars_mcmc_cons_all.append(np.mean(vars_mcmc_cons_mc))
+        vars_lcv_cons_all.append(np.mean(vars_lcv_cons_mc))
+        vars_qcv_cons_all.append(np.mean(vars_qcv_cons_mc))
+
+        paper_summary = {'model_name':model_names, 'constrained_param_count': constrained_param_count,
         'build_time': build_time_all, 'sample_time': sample_time_all, 
         'lcv_gradient_time':lcv_grad_time_all, 'lcv_cv_time':lcv_cv_time_all,
         'qcv_gradient_time':qcv_grad_time_all, 'qcv_cv_time':qcv_cv_time_all,
         'rmse_mcmc':rmse_mcmc_all, 'rmse_lcv':rmse_lcv_all, 'rmse_qcv':rmse_qcv_all,
-        'var_mcmc':vars_mcmc_all, 'var_lcv':vars_lcv_all, 'var_qcv':vars_qcv_all}
+        'var_mcmc':vars_mcmc_all, 'var_lcv':vars_lcv_all, 'var_qcv':vars_qcv_all,
+        'var_mcmc_constrained':vars_mcmc_cons_all, 'var_lcv_constrained':vars_lcv_cons_all, 'var_qcv_constrained':vars_qcv_cons_all}
         paper_summary_df = pd.DataFrame(paper_summary)
         paper_summary_df.to_csv('paper_summary.csv', index=False)
+        
 
