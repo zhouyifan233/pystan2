@@ -15,6 +15,7 @@ if __name__ == '__main__':
         file_dirs = fid.readlines()
     
     model_names = []
+    all_param_count = []
     constrained_param_count = []
     rmse_mcmc_all = []
     rmse_lcv_all = []
@@ -95,6 +96,9 @@ if __name__ == '__main__':
         vars_mcmc_mc = []
         vars_lcv_mc = []
         vars_qcv_mc = []
+        vars_all_mcmc_mc = []
+        vars_all_lcv_mc = []
+        vars_all_qcv_mc = []
         vars_mcmc_cons_mc = []
         vars_lcv_cons_mc = []
         vars_qcv_cons_mc = []
@@ -165,8 +169,8 @@ if __name__ == '__main__':
             # Linear CV correctness
             lcv_means = np.nanmean(linear_cv_samples, axis=0)
             rmse_lcv = np.sqrt(np.nanmean((lcv_means-parameter_means_vector_truth)**2))
-            vars_tmp = np.nanvar(linear_cv_samples, axis=0)
-            vars_lcv = np.mean(vars_tmp)
+            vars_lcv_tmp = np.nanvar(linear_cv_samples, axis=0)
+            vars_lcv = np.mean(vars_lcv_tmp)
             if len(lcv_constrained_dim) == 0:
                 vars_cons_lcv = -1.0
             else:
@@ -175,8 +179,8 @@ if __name__ == '__main__':
             # Quad CV correctness
             qcv_means = np.nanmean(quadratic_cv_samples, axis=0)
             rmse_qcv = np.sqrt(np.nanmean((qcv_means-parameter_means_vector_truth)**2))
-            vars_tmp = np.nanvar(quadratic_cv_samples, axis=0)
-            vars_qcv = np.mean(vars_tmp)
+            vars_qcv_tmp = np.nanvar(quadratic_cv_samples, axis=0)
+            vars_qcv = np.mean(vars_qcv_tmp)
             if len(lcv_constrained_dim) == 0:
                 vars_cons_qcv = -1.0
             else:
@@ -199,8 +203,14 @@ if __name__ == '__main__':
             vars_lcv_cons_mc.append(vars_cons_lcv)
             vars_qcv_cons_mc.append(vars_cons_qcv)
 
-            break
+            vars_all_mcmc_mc.append(parameter_vars_vector)
+            vars_all_lcv_mc.append(vars_lcv_tmp)
+            vars_all_qcv_mc.append(vars_qcv_tmp)
+        
+        with open('/home/yifan/control-variate-paper-data/'+path.basename(file_dir)+'_variance_records.bin', 'wb') as fid:
+            pickle.dump({'vars_mcmc': vars_all_mcmc_mc, 'vars_lcv':vars_all_lcv_mc, 'vars_qcv':vars_all_qcv_mc}, fid)
 
+        all_param_count.append(linear_cv_samples.shape[1])
         constrained_param_count.append(len(lcv_constrained_dim))
         build_time_all.append(build_time)
         sample_time_all.append(np.mean(sample_time_mc))
@@ -221,7 +231,7 @@ if __name__ == '__main__':
         vars_lcv_cons_all.append(np.mean(vars_lcv_cons_mc))
         vars_qcv_cons_all.append(np.mean(vars_qcv_cons_mc))
 
-        paper_summary = {'model_name':model_names, 'constrained_param_count': constrained_param_count,
+        paper_summary = {'model_name':model_names, 'all_params_count':all_param_count, 'constrained_param_count': constrained_param_count,
         'build_time': build_time_all, 'sample_time': sample_time_all, 
         'lcv_gradient_time':lcv_grad_time_all, 'lcv_cv_time':lcv_cv_time_all,
         'qcv_gradient_time':qcv_grad_time_all, 'qcv_cv_time':qcv_cv_time_all,
