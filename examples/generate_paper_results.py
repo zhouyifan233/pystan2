@@ -21,13 +21,10 @@ if __name__ == '__main__':
     rmse_lcv_all = []
     rmse_qcv_all = []
 
-    vars_mcmc_all = []
-    vars_lcv_all = []
-    vars_qcv_all = []
-
-    vars_mcmc_cons_all = []
-    vars_lcv_cons_all = []
-    vars_qcv_cons_all = []
+    vars_lcv_improv_all = []
+    vars_qcv_improv_all = []
+    vars_lcv_improv_cons_all = []
+    vars_qcv_improv_cons_all = []
 
     build_time_all = []
     sample_time_all = []
@@ -36,7 +33,7 @@ if __name__ == '__main__':
     lcv_cv_time_all = []
     qcv_grad_time_all = []
     qcv_cv_time_all = []
-    for file_dir in file_dirs:
+    for iter, file_dir in enumerate(file_dirs):
         file_dir = file_dir.strip()
         print(file_dir)
         # Assume the stan model file ends with .stan
@@ -93,20 +90,26 @@ if __name__ == '__main__':
         rmse_mcmc_mc = []
         rmse_lcv_mc = []
         rmse_qcv_mc = []
-        vars_mcmc_mc = []
-        vars_lcv_mc = []
-        vars_qcv_mc = []
+
+        vars_lcv_improv_mc = []
+        vars_qcv_improv_mc = []
+        vars_lcv_improv_cons_mc = []
+        vars_qcv_improv_cons_mc = []
+
         vars_all_mcmc_mc = []
         vars_all_lcv_mc = []
         vars_all_qcv_mc = []
-        vars_mcmc_cons_mc = []
-        vars_lcv_cons_mc = []
-        vars_qcv_cons_mc = []
+
+        vars_all_con_mcmc_mc = []
+        vars_all_con_lcv_mc = []
+        vars_all_con_qcv_mc = []
+
         sample_time_mc = []
         lcv_grad_time_mc = []
         lcv_cv_time_mc = []
         qcv_grad_time_mc = []
         qcv_cv_time_mc = []
+
         for mc_run in range(100):
             sample_start_time = time.time()
             fit = sm.sampling(data=data, chains=1, iter=2000, warmup=1000, verbose=False)
@@ -159,32 +162,33 @@ if __name__ == '__main__':
                     parameter_vars_vector.extend(list(np.squeeze(parameter_vars[pn]).flatten(order='F')))
             parameter_means_vector = np.array(parameter_means_vector)
             parameter_vars_vector = np.array(parameter_vars_vector)
-            rmse_mcmc = np.sqrt(np.mean((parameter_means_vector-parameter_means_vector_truth)**2))
-            vars_mcmc = np.mean(parameter_vars_vector)
+            rmse_mcmc = np.sqrt(np.nanmean((parameter_means_vector-parameter_means_vector_truth)**2))
             if len(lcv_constrained_dim) == 0:
-                vars_cons_mcmc = -1.0
+                vars_cons_mcmc = np.nan
             else:
-                vars_cons_mcmc = np.mean(parameter_vars_vector[lcv_constrained_dim])
+                vars_cons_mcmc = parameter_vars_vector[lcv_constrained_dim]
 
             # Linear CV correctness
             lcv_means = np.nanmean(linear_cv_samples, axis=0)
             rmse_lcv = np.sqrt(np.nanmean((lcv_means-parameter_means_vector_truth)**2))
             vars_lcv_tmp = np.nanvar(linear_cv_samples, axis=0)
-            vars_lcv = np.mean(vars_lcv_tmp)
+            vars_lcv_improv = np.nanmean(parameter_vars_vector/vars_lcv_tmp)
             if len(lcv_constrained_dim) == 0:
-                vars_cons_lcv = -1.0
+                vars_cons_lcv = np.nan
             else:
-                vars_cons_lcv = np.mean(vars_tmp[lcv_constrained_dim])
+                vars_cons_lcv = vars_lcv_tmp[lcv_constrained_dim]
+            vars_lcv_improv_cons = np.nanmean(vars_cons_mcmc/vars_cons_lcv)
 
             # Quad CV correctness
             qcv_means = np.nanmean(quadratic_cv_samples, axis=0)
             rmse_qcv = np.sqrt(np.nanmean((qcv_means-parameter_means_vector_truth)**2))
             vars_qcv_tmp = np.nanvar(quadratic_cv_samples, axis=0)
-            vars_qcv = np.mean(vars_qcv_tmp)
+            vars_qcv_improv = np.nanmean(parameter_vars_vector/vars_qcv_tmp)
             if len(lcv_constrained_dim) == 0:
-                vars_cons_qcv = -1.0
+                vars_cons_qcv = np.nan
             else:
-                vars_cons_qcv = np.mean(vars_tmp[lcv_constrained_dim])
+                vars_cons_qcv = vars_qcv_tmp[lcv_constrained_dim]
+            vars_qcv_improv_cons = np.nanmean(vars_cons_mcmc/vars_cons_qcv)
 
             sample_time_mc.append(sample_time)
             lcv_grad_time_mc.append(lcv_grad_time_mean)
@@ -196,22 +200,27 @@ if __name__ == '__main__':
             rmse_lcv_mc.append(rmse_lcv)
             rmse_qcv_mc.append(rmse_qcv)
 
-            vars_mcmc_mc.append(vars_mcmc)
-            vars_lcv_mc.append(vars_lcv)
-            vars_qcv_mc.append(vars_qcv)
-            vars_mcmc_cons_mc.append(vars_cons_mcmc)
-            vars_lcv_cons_mc.append(vars_cons_lcv)
-            vars_qcv_cons_mc.append(vars_cons_qcv)
+            vars_lcv_improv_mc.append(vars_lcv_improv)
+            vars_qcv_improv_mc.append(vars_qcv_improv)
+            vars_lcv_improv_cons_mc.append(vars_lcv_improv_cons)
+            vars_qcv_improv_cons_mc.append(vars_qcv_improv_cons)
 
             vars_all_mcmc_mc.append(parameter_vars_vector)
             vars_all_lcv_mc.append(vars_lcv_tmp)
             vars_all_qcv_mc.append(vars_qcv_tmp)
+
+            vars_all_con_mcmc_mc.append(vars_cons_mcmc)
+            vars_all_con_lcv_mc.append(vars_cons_lcv)
+            vars_all_con_qcv_mc.append(vars_cons_qcv)
+            
         
         with open('/home/yifan/control-variate-paper-data/'+path.basename(file_dir)+'_variance_records.bin', 'wb') as fid:
-            pickle.dump({'vars_mcmc': vars_all_mcmc_mc, 'vars_lcv':vars_all_lcv_mc, 'vars_qcv':vars_all_qcv_mc}, fid)
+            pickle.dump({'vars_mcmc': vars_all_mcmc_mc, 'vars_lcv':vars_all_lcv_mc, 'vars_qcv':vars_all_qcv_mc,
+            'vars_all_con_mcmc_mc':vars_all_con_mcmc_mc, 'vars_all_con_lcv_mc':vars_all_con_lcv_mc, 'vars_all_con_qcv_mc':vars_all_con_qcv_mc}, fid)
 
         all_param_count.append(linear_cv_samples.shape[1])
         constrained_param_count.append(len(lcv_constrained_dim))
+        
         build_time_all.append(build_time)
         sample_time_all.append(np.mean(sample_time_mc))
         lcv_grad_time_all.append(np.mean(lcv_grad_time_mc))
@@ -219,26 +228,22 @@ if __name__ == '__main__':
         qcv_grad_time_all.append(np.mean(qcv_grad_time_mc))
         qcv_cv_time_all.append(np.mean(qcv_cv_time_mc))
 
-        rmse_mcmc_all.append(np.mean(rmse_mcmc_mc))
-        rmse_lcv_all.append(np.mean(rmse_lcv_mc))
-        rmse_qcv_all.append(np.mean(rmse_qcv_mc))
+        rmse_mcmc_all.append(np.nanmean(rmse_mcmc_mc))
+        rmse_lcv_all.append(np.nanmean(rmse_lcv_mc))
+        rmse_qcv_all.append(np.nanmean(rmse_qcv_mc))
 
-        vars_mcmc_all.append(np.mean(vars_mcmc_mc))
-        vars_lcv_all.append(np.mean(vars_lcv_mc))
-        vars_qcv_all.append(np.mean(vars_qcv_mc))
-
-        vars_mcmc_cons_all.append(np.mean(vars_mcmc_cons_mc))
-        vars_lcv_cons_all.append(np.mean(vars_lcv_cons_mc))
-        vars_qcv_cons_all.append(np.mean(vars_qcv_cons_mc))
+        vars_lcv_improv_all.append(np.nanmean(vars_lcv_improv_mc))
+        vars_qcv_improv_all.append(np.nanmean(vars_qcv_improv_mc))
+        vars_lcv_improv_cons_all.append(np.nanmean(vars_lcv_improv_cons_mc))
+        vars_qcv_improv_cons_all.append(np.nanmean(vars_qcv_improv_cons_mc))
 
         paper_summary = {'model_name':model_names, 'all_params_count':all_param_count, 'constrained_param_count': constrained_param_count,
         'build_time': build_time_all, 'sample_time': sample_time_all, 
         'lcv_gradient_time':lcv_grad_time_all, 'lcv_cv_time':lcv_cv_time_all,
         'qcv_gradient_time':qcv_grad_time_all, 'qcv_cv_time':qcv_cv_time_all,
         'rmse_mcmc':rmse_mcmc_all, 'rmse_lcv':rmse_lcv_all, 'rmse_qcv':rmse_qcv_all,
-        'var_mcmc':vars_mcmc_all, 'var_lcv':vars_lcv_all, 'var_qcv':vars_qcv_all,
-        'var_mcmc_constrained':vars_mcmc_cons_all, 'var_lcv_constrained':vars_lcv_cons_all, 'var_qcv_constrained':vars_qcv_cons_all}
+        'vars_lcv_improv':vars_lcv_improv_all, 'vars_qcv_improv':vars_qcv_improv_all,
+        'vars_lcv_improv_cons':vars_lcv_improv_cons_all, 'vars_qcv_improv_cons':vars_qcv_improv_cons_all}
         paper_summary_df = pd.DataFrame(paper_summary)
-        paper_summary_df.to_csv('paper_summary.csv', index=False)
+        paper_summary_df.to_csv('paper_summary_{:d}.csv'.format(iter), index=False)
         
-
