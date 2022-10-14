@@ -1,9 +1,12 @@
 Control Variates on Pystan2 (v2.19.1.1-cvodes)
-
 ====================================
+
+We are implementing control variates for other probabilistic toolboxes...
 
 The implementation of control variates is mainly in pystan/postprocess.py.
 
+Test
+====================================
 Test eight schools model: 
 
 ::
@@ -44,7 +47,6 @@ Test all the 12 models:
     python examples/run_all_models.py
 
 Requirement:
-
 ====================================
 
 ::
@@ -52,7 +54,6 @@ Requirement:
     rpy2==3.4.5 is used to read R data files for the examples. It is not necessary for running control variates.
 
 Install (same to how you install pystan2):
-
 ====================================
 
 ::
@@ -64,7 +65,6 @@ Install (same to how you install pystan2):
    pip install -e .
 
 References:
-
 ====================================
 
 [1] Mira, Antonietta, Reza Solgi, and Daniele Imparato. "Zero variance markov chain monte carlo for bayesian estimators." Statistics and Computing 23.5 (2013): 653-662.
