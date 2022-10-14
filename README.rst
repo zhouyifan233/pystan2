@@ -1,3 +1,84 @@
+Control Variates on Pystan2 (v2.19.1.1-cvodes)
+
+---------------
+
+The implementation of control variates is mainly in pystan/postprocess.py.
+
+Test eight schools model: 
+
+::
+
+    python examples/run_model.py --model eight_schools
+
+Test other models (downloaded from https://github.com/stan-dev/stat_comp_benchmarks/tree/master/benchmarks):
+
+::
+
+    python examples/run_model.py --model low_dim_corr_gauss
+
+    python examples/run_model.py --model low_dim_gauss_mix
+
+    python examples/run_model.py --model arK
+
+    python examples/run_model.py --model arma
+
+    python examples/run_model.py --model garch
+
+    python examples/run_model.py --model gp_pois_regr
+
+    python examples/run_model.py --model gp_regr
+
+    python examples/run_model.py --model irt_2pl
+
+    python examples/run_model.py --model low_dim_gauss_mix_collapse
+
+    python examples/run_model.py --model one_comp_mm_elim_abs
+
+    python examples/run_model.py --model sir
+
+
+Test all the 12 models: 
+
+::
+
+    python examples/run_all_models.py
+
+Requirement:
+
+---------------
+
+::
+
+    rpy2==3.4.5 is used to read R data files for the examples. It is not necessary for running control variates.
+
+Install (same to how you install pystan2):
+
+---------------
+
+::
+
+   git clone --recursive --branch ControlVariates https://github.com/zhouyifan233/pystan2.git
+
+   cd pystan2
+
+   pip install -e .
+
+References:
+
+---------------
+
+[1] Mira, Antonietta, Reza Solgi, and Daniele Imparato. "Zero variance markov chain monte carlo for bayesian estimators." Statistics and Computing 23.5 (2013): 653-662.
+
+[2] Papamarkou, Theodore, Antonietta Mira, and Mark Girolami. "Zero variance differential geometric Markov chain Monte Carlo algorithms." Bayesian Analysis 9.1 (2014): 97-128.
+
+====================================
+
+====================================
+
+====================================
+
+====================================
+
 PyStan: The Python Interface to Stan
 ====================================
 
