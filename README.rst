@@ -1,6 +1,6 @@
 Control Variates on Pystan2 (v2.19.1.1-cvodes)
 
----------------
+====================================
 
 The implementation of control variates is mainly in pystan/postprocess.py.
 
@@ -10,7 +10,7 @@ Test eight schools model:
 
     python examples/run_model.py --model eight_schools
 
-Test other models (downloaded from https://github.com/stan-dev/stat_comp_benchmarks/tree/master/benchmarks):
+Test other models (from https://github.com/stan-dev/stat_comp_benchmarks/tree/master/benchmarks):
 
 ::
 
@@ -45,7 +45,7 @@ Test all the 12 models:
 
 Requirement:
 
----------------
+====================================
 
 ::
 
@@ -53,7 +53,7 @@ Requirement:
 
 Install (same to how you install pystan2):
 
----------------
+====================================
 
 ::
 
@@ -65,15 +65,11 @@ Install (same to how you install pystan2):
 
 References:
 
----------------
+====================================
 
 [1] Mira, Antonietta, Reza Solgi, and Daniele Imparato. "Zero variance markov chain monte carlo for bayesian estimators." Statistics and Computing 23.5 (2013): 653-662.
 
 [2] Papamarkou, Theodore, Antonietta Mira, and Mark Girolami. "Zero variance differential geometric Markov chain Monte Carlo algorithms." Bayesian Analysis 9.1 (2014): 97-128.
-
-====================================
-
-====================================
 
 ====================================
 
