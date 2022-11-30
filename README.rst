@@ -1,4 +1,4 @@
-A more general implementation, see here: [Control Variates](https://github.com/zhouyifan233/ControlVariates)
+More general implementations, see here: https://github.com/zhouyifan233/ControlVariates
 
 Control Variates on Pystan2 (v2.19.1.1-cvodes)
 ====================================
